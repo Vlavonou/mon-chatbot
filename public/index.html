@@ -1,0 +1,39 @@
+<!-- Structure de la page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon Chatbot IA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="app">
+    <h1>My English Friend 🤖</h1>
+
+    <!-- Zone d'affichage des messages -->
+    <div id="chat-box"></div>
+
+    <!-- Zone de saisie -->
+    <div id="input-area">
+        <input type="text" id="user-input"
+            placeholder="Type your message in English..."
+            autocomplete="off">
+        <button id="send-btn">Send</button>
+        <button id="summary-btn">Get Summary</button>
+    </div>
+
+    <!-- Modale pour afficher le résumé -->
+    <div id="summary-modal" style="display:none">
+        <div id="summary-content">
+            <button id="close-modal">✕ Close</button>
+            <div id="summary-text"></div>
+        </div>
+    </div>
+  </div>
+
+  <!-- On charge le JS à la fin du body pour que le HTML soit déjà chargé -->
+  <script src="app.js"></script>
+</body>
+</html>
