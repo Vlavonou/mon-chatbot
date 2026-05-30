@@ -27,7 +27,16 @@ app.use(express.json());
 
 // Sert automatiquement les fichiers du dossier "public"
 // (index.html, style.css, app.js seront accessibles depuis le navigateur)
-app.use(express.static('public'));
+app.use(express.static('public', {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
 
 // === ROUTE API ===
 // Une route = une adresse que le frontend peut appeler
