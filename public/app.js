@@ -2,23 +2,37 @@ const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 
-// NOUVEAU : tableau qui stocke tout l'historique de la conversation
-// Format attendu par l'API : [{ role: "user", content: "..." }, ...]
-let conversationHistory = [];
+// Charge l'historique depuis localStorage au démarrage
+// Si rien n'est sauvegardé, on commence avec un tableau vide
+let conversationHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
 
+// === FONCTION : AJOUTER UN MESSAGE DANS LE CHAT ===
 function addMessage(text, role) {
   const div = document.createElement('div');
   div.classList.add('message', role);
   div.innerHTML = text
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/---/g, '<hr>')
-  .replace(/\n/g, '<br>');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/---/g, '<hr>')
+    .replace(/\n/g, '<br>');
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+// === FONCTION : SAUVEGARDER DANS LOCALSTORAGE ===
+function saveToLocalStorage() {
+  localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
+}
+
+// === FONCTION : AFFICHER LES ANCIENS MESSAGES AU CHARGEMENT ===
+function loadMessages() {
+  conversationHistory.forEach(msg => {
+    addMessage(msg.content, msg.role);
+  });
+}
+
+// === FONCTION PRINCIPALE : ENVOYER UN MESSAGE ===
 async function sendMessage() {
   const message = userInput.value.trim();
   if (!message) return;
@@ -29,33 +43,34 @@ async function sendMessage() {
   sendBtn.textContent = '...';
 
   try {
-    // NOUVEAU : on envoie aussi l'historique complet
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message,
-        history: conversationHistory  // on envoie l'historique
+        history: conversationHistory
       })
     });
 
     const data = await response.json();
     addMessage(data.reply, 'assistant');
 
-    // NOUVEAU : on ajoute les deux derniers messages à l'historique
+    // Ajoute les deux messages à l'historique
     conversationHistory.push(
       { role: 'user', content: message },
       { role: 'assistant', content: data.reply }
     );
 
-    // OPTIONNEL : limiter l'historique aux 20 derniers messages
-    // (pour éviter des requêtes trop longues et des coûts élevés)
+    // Limite l'historique aux 20 derniers messages
     if (conversationHistory.length > 30) {
       conversationHistory = conversationHistory.slice(-20);
     }
 
+    // ✅ SAUVEGARDE APRÈS CHAQUE MESSAGE — c'est ici que ça manquait !
+    saveToLocalStorage();
+
   } catch (error) {
-    addMessage('Connection error.', 'assistant');
+    addMessage('❌ Connection error. Is the server running?', 'assistant');
     console.error(error);
   }
 
@@ -63,37 +78,6 @@ async function sendMessage() {
   sendBtn.textContent = 'Send';
   userInput.focus();
 }
-
-sendBtn.addEventListener('click', sendMessage);
-userInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') sendMessage();
-});
-
-// === SAUVEGARDE LOCALE ===
-// localStorage persiste les données même si on ferme le navigateur
-
-function saveToLocalStorage() {
-  localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
-}
-
-function loadFromLocalStorage() {
-  const saved = localStorage.getItem('chatHistory');
-  if (saved) {
-    conversationHistory = JSON.parse(saved);
-    // Réaffiche les messages sauvegardés
-    conversationHistory.forEach(msg => {
-      addMessage(msg.content, msg.role);
-    });
-  }
-}
-
-// Charge l'historique au démarrage
-loadFromLocalStorage();
-
-// Sauvegarde après chaque envoi (ajoute ça dans sendMessage, après avoir mis à jour conversationHistory)
-// Dans la fonction sendMessage, après conversationHistory.push(...), ajoute :
-// saveToLocalStorage();
-
 
 // === BOUTON GET SUMMARY ===
 const summaryBtn = document.getElementById('summary-btn');
@@ -119,8 +103,6 @@ summaryBtn.addEventListener('click', async () => {
     });
 
     const data = await response.json();
-
-    // Affiche le résumé dans la modale
     summaryText.textContent = data.summary;
     summaryModal.style.display = 'flex';
 
@@ -142,3 +124,13 @@ closeModal.addEventListener('click', () => {
 summaryModal.addEventListener('click', (e) => {
   if (e.target === summaryModal) summaryModal.style.display = 'none';
 });
+
+// === ÉVÉNEMENTS ===
+sendBtn.addEventListener('click', sendMessage);
+userInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+// === CHARGEMENT INITIAL ===
+// Réaffiche les anciens messages au démarrage de la page
+loadMessages();
